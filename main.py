@@ -20,9 +20,5 @@ class Poker:
             temporary_deck.pop(rand)
         self.current_deck = shuffled_deck
 
-poker = Poker()
-print(poker.current_deck)
-poker.shuffle_deck(poker.current_deck)
-print(poker.current_deck)
-poker.shuffle_deck(poker.current_deck)
-print(poker.current_deck)
+    def score(self, hand, community_cards):
+        return
