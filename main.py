@@ -22,3 +22,5 @@ class Poker:
 
     def score(self, hand, community_cards):
         return
+    def find_best_hand(self, hand, community_cards):
+        return
