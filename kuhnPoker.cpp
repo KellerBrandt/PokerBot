@@ -1,77 +1,48 @@
-#include <iostream>
-#include <vector>
+#include "KuhnPoker.h"
 
-class Player {
-private:
-  int stack;
-  int bet;
+KuhnPoker::KuhnPoker() {
+  pot = 0;
+  ante = 1;
+  roundBetSize = 1;
+  gameState = 0;
+  hasBet = false;
+  playingGame = true;
+  players.push_back(Player(1));
+  players.push_back(Player(2));
+}
 
-public:
-  Player() {}
-  void playTurn(int round) {
-    switch (round) {
-    case 0:
-      printf("Test0");
-      break;
-    case 1:
-      printf("Test1");
-    case 2:
-      printf("Test2");
+KuhnPoker::~KuhnPoker() {}
+
+void KuhnPoker::playGame() {
+  while (playingGame) {
+    for (Player p : players) {
+      p.playTurn(this);
     }
-  }
-};
-
-class PokerBot : public Player {};
-
-class KuhnPoker {
-private:
-  std::vector<Player> players;
-  int pot; // total amount in the pot
-  int gameState;
-  /*
-  0: ante round
-  1: first round
-  2: second round
-  ...
-  */
-  bool hasBet; // whether or not a player has bet this round
-  bool playingGame;
-
-public:
-  KuhnPoker() {
-    pot = 0;
-    gameState = 0;
-    hasBet = false;
-    playingGame = true;
-    players.push_back(Player());
-    players.push_back(Player());
-  }
-
-  ~KuhnPoker() {}
-
-  void playGame() {
-    while (playingGame) {
-      for (Player p : players) {
-        p.playTurn(0);
-      }
-      if (gameState == 2) {
-        playingGame = false;
-      }
-
-      ++gameState;
+    if (gameState == 2) {
+      playingGame = false;
     }
-  }
 
-  void resetGame() {
-    pot = 0;
-    gameState = 0;
-    hasBet = false;
-    playingGame = true;
+    ++gameState;
   }
-};
+}
+
+void KuhnPoker::addToPot(int n) { pot += n; }
+
+void KuhnPoker::resetGame() {
+  pot = 0;
+  ante = 1;
+  gameState = 0;
+  hasBet = false;
+  playingGame = true;
+}
+
+// getters
+int KuhnPoker::getAnte() { return ante; }
+int KuhnPoker::getGameState() { return gameState; }
+// setters
 
 int main() {
-  printf("Test");
+  printf("Test\n");
   KuhnPoker kPokerGame = KuhnPoker();
   kPokerGame.playGame();
   return 0;
