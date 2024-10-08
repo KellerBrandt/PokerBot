@@ -3,14 +3,21 @@
 #include "KuhnPoker.h"
 #include "Player.h"
 
+Player::Player(KuhnPoker* kp, int n) {
+  this->kp = kp;
+  this->n = n;
+  this->stack = 10;
+}
 
-Player::Player(int n) { this->n = n; }
+Player::~Player() {
 
-void Player::playTurn(KuhnPoker *kp) {
+}
+
+void Player::playTurn() {
   std::cout << n << "\n";
   switch (kp->getGameState()) {
-  case 0:
-    printf("Test0");
+  case 0: // first round ante
+    bet(kp->getAnte());
     break;
   case 1:
     printf("Test1");
@@ -22,4 +29,4 @@ void Player::playTurn(KuhnPoker *kp) {
   printf("\n");
 }
 
-void Player::bet(int n) { printf("TurnPlayed"); }
+void Player::bet(int n) { stack -= n; }

@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <vector>
+#include <queue>
 
 #include "Player.h"
 
@@ -20,15 +21,18 @@ private:
   */
   bool hasBet; // whether or not a player has bet this round
   bool playingGame;
+  constexpr static int cards[] = {0, 1, 2};
 
 public:
   KuhnPoker();
   ~KuhnPoker();
   void playGame();
-  void addToPot(int n);
   void resetGame();
+  void shuffleDeck();
+  void dealCards();
   // getters
   int getAnte();
   int getGameState();
   // setters
+  void addToPot(int n);
 };

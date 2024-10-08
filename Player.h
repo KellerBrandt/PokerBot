@@ -4,10 +4,12 @@ class KuhnPoker;
 
 class Player {
 private:
+  KuhnPoker* kp;
   int stack, n;
 
 public:
-  Player(int n);
-  void playTurn(KuhnPoker *kp);
+  Player(KuhnPoker* kp, int n);
+  virtual ~Player();
+  virtual void playTurn();
   void bet(int n);
 };

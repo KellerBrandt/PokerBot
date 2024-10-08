@@ -7,8 +7,9 @@ KuhnPoker::KuhnPoker() {
   gameState = 0;
   hasBet = false;
   playingGame = true;
-  players.push_back(Player(1));
-  players.push_back(Player(2));
+  players.push_back(Player(this, 1));
+  players.push_back(Player(this, 2));
+  //deck;
 }
 
 KuhnPoker::~KuhnPoker() {}
@@ -16,17 +17,14 @@ KuhnPoker::~KuhnPoker() {}
 void KuhnPoker::playGame() {
   while (playingGame) {
     for (Player p : players) {
-      p.playTurn(this);
+      p.playTurn();
     }
     if (gameState == 2) {
       playingGame = false;
     }
-
     ++gameState;
   }
 }
-
-void KuhnPoker::addToPot(int n) { pot += n; }
 
 void KuhnPoker::resetGame() {
   pot = 0;
@@ -36,10 +34,15 @@ void KuhnPoker::resetGame() {
   playingGame = true;
 }
 
+void KuhnPoker::dealCards() {
+
+}
+
 // getters
 int KuhnPoker::getAnte() { return ante; }
 int KuhnPoker::getGameState() { return gameState; }
 // setters
+void KuhnPoker::addToPot(int n) { pot += n; }
 
 int main() {
   printf("Test\n");
