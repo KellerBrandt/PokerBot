@@ -4,21 +4,21 @@ class KuhnPoker;
 
 class Player {
 private:
-  KuhnPoker* kp;
+  KuhnPoker *kp;
   int stack, n;
   int card;
   bool folded;
 
 public:
-  Player(KuhnPoker* kp, int n);
+  Player(KuhnPoker *kp, int n);
   virtual ~Player();
   virtual void playTurn();
   void bet(int n);
   void fold();
-  //getters
+  // getters
   int getCard();
   int getNumber();
   bool hasFolded();
-  //setters
+  // setters
   void setCard(int card);
 };

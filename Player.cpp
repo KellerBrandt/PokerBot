@@ -29,22 +29,12 @@ void Player::bet(int n) {
   kp->addToPot(n);
 }
 
-void Player::fold() {
-  folded = true;
-}
+void Player::fold() { folded = true; }
 
-int Player::getCard() {
-  return card;
-}
+int Player::getCard() { return card; }
 
-int Player::getNumber() {
-  return n;
-}
+int Player::getNumber() { return n; }
 
-bool Player::hasFolded() {
-  return folded;
-}
+bool Player::hasFolded() { return folded; }
 
-void Player::setCard(int card) {
-  this->card = card;
-}
+void Player::setCard(int card) { this->card = card; }

@@ -23,8 +23,8 @@ void KuhnPoker::playGame() {
   while (playingGame) {
     for (Player &p : players) {
       if (!p.hasFolded()) {
-      p.playTurn();
-    }
+        p.playTurn();
+      }
     }
     if (gameState == 1) {
       playingGame = false;
@@ -33,14 +33,14 @@ void KuhnPoker::playGame() {
   }
   int maxScore = 0;
   int winnerSofar = -1;
-  for (Player& p : players) {
+  for (Player &p : players) {
     if (!p.hasFolded()) {
-    int temp = scoreHand(p.getCard());
-    std::cout << p.getNumber() << " " << temp << "\n";
-    if (maxScore < temp) {
-      maxScore = temp;
-      winnerSofar = p.getNumber();
-    }
+      int temp = scoreHand(p.getCard());
+      std::cout << p.getNumber() << " " << temp << "\n";
+      if (maxScore < temp) {
+        maxScore = temp;
+        winnerSofar = p.getNumber();
+      }
     }
   }
   std::cout << "player " << winnerSofar << " wins\n";
@@ -73,15 +73,13 @@ void KuhnPoker::emptyDeck() {
 }
 
 void KuhnPoker::dealCards() {
-  for (Player& p : players) {
+  for (Player &p : players) {
     p.setCard(deck.front());
     deck.pop();
   }
 }
 
-int KuhnPoker::scoreHand(int card) {
-  return card;
-}
+int KuhnPoker::scoreHand(int card) { return card; }
 
 // getters
 int KuhnPoker::getAnte() { return ante; }

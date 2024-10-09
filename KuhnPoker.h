@@ -5,7 +5,6 @@
 #include <random>
 #include <vector>
 
-
 #include "Player.h"
 
 class KuhnPoker {
