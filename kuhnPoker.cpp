@@ -1,9 +1,6 @@
 #include "KuhnPoker.h"
 #include <algorithm>
-
-KuhnPoker::cards.std::push_back(0);
-KuhnPoker::cards.std::push_back(1);
-KuhnPoker::cards.std::push_back(2);
+#include <vector>
 
 KuhnPoker::KuhnPoker() {
   pot = 0;
@@ -42,10 +39,11 @@ void KuhnPoker::resetGame() {
 
 void KuhnPoker::shuffleDeck() {
   emptyDeck();
-  
-  std::copy(cards, cards + sizeof(cards), temp); 
-  while () {
-
+  std::vector<int> temp = cards; //supposedly copies but might not
+  while (!temp.empty()) {
+    int tempRand = std::rand() * temp.size();
+    deck.push(temp[tempRand]);
+    temp.
   }
 }
 
