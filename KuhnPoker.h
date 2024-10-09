@@ -1,8 +1,10 @@
 #pragma once
 
 #include <iostream>
-#include <vector>
 #include <queue>
+#include <random>
+#include <vector>
+
 
 #include "Player.h"
 
@@ -21,10 +23,14 @@ private:
   bool hasBet; // whether or not a player has bet this round
   bool playingGame;
   std::vector<Player> players;
-  const static std::vector<int> cards;
   std::queue<int> deck;
+  std::random_device rd;
+  std::mt19937 gen;
+  std::uniform_int_distribution<> distrib;
 
 public:
+  const static std::vector<int> cards;
+
   KuhnPoker();
   ~KuhnPoker();
   void playGame();
@@ -32,6 +38,7 @@ public:
   void shuffleDeck();
   void emptyDeck();
   void dealCards();
+  int scoreHand(int card);
   // getters
   int getAnte();
   int getGameState();
