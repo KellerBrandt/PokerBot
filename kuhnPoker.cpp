@@ -1,4 +1,9 @@
 #include "KuhnPoker.h"
+#include <algorithm>
+
+KuhnPoker::cards.std::push_back(0);
+KuhnPoker::cards.std::push_back(1);
+KuhnPoker::cards.std::push_back(2);
 
 KuhnPoker::KuhnPoker() {
   pot = 0;
@@ -9,7 +14,8 @@ KuhnPoker::KuhnPoker() {
   playingGame = true;
   players.push_back(Player(this, 1));
   players.push_back(Player(this, 2));
-  //deck;
+  deck = std::queue<int>();
+  shuffleDeck();
 }
 
 KuhnPoker::~KuhnPoker() {}
@@ -32,6 +38,21 @@ void KuhnPoker::resetGame() {
   gameState = 0;
   hasBet = false;
   playingGame = true;
+}
+
+void KuhnPoker::shuffleDeck() {
+  emptyDeck();
+  
+  std::copy(cards, cards + sizeof(cards), temp); 
+  while () {
+
+  }
+}
+
+void KuhnPoker::emptyDeck() {
+  while(!deck.empty()) {
+    deck.pop();
+  }
 }
 
 void KuhnPoker::dealCards() {

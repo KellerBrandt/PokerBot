@@ -8,7 +8,6 @@
 
 class KuhnPoker {
 private:
-  std::vector<Player> players;
   int pot; // total amount in the pot
   int ante;
   int roundBetSize;
@@ -21,7 +20,9 @@ private:
   */
   bool hasBet; // whether or not a player has bet this round
   bool playingGame;
-  constexpr static int cards[] = {0, 1, 2};
+  std::vector<Player> players;
+  const static std::vector<int> cards;
+  std::queue<int> deck;
 
 public:
   KuhnPoker();
@@ -29,6 +30,7 @@ public:
   void playGame();
   void resetGame();
   void shuffleDeck();
+  void emptyDeck();
   void dealCards();
   // getters
   int getAnte();
