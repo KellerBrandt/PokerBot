@@ -1,5 +1,5 @@
 #include "KuhnPoker.h"
-#include <experimental/random>
+//#include <experimental/random>
 #include <vector>
 
 const std::vector<int> KuhnPoker::cards = {0, 1, 2};
@@ -60,7 +60,7 @@ void KuhnPoker::shuffleDeck() {
   emptyDeck();
   std::vector<int> temp = cards; // supposedly copies but might not
   while (!temp.empty()) {
-    int tempRand = std::experimental::randint(0, 100) % temp.size();
+    int tempRand = 0; //std::experimental::randint(0, 100) % temp.size();
     deck.push(temp[tempRand]);
     temp.erase(temp.begin() + tempRand);
   }
