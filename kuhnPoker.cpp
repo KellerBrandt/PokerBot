@@ -1,88 +1,36 @@
-#include "KuhnPoker.h"
-//#include <experimental/random>
+#include <iostream>
+#include <random>
+#include <stdio.h>
 #include <vector>
+#include <unordered_map>
 
-const std::vector<int> KuhnPoker::cards = {0, 1, 2};
+class KuhnPoker {
+  private:
+  public:
+  std::vector<int> cards; //0: jack, 1: queen, 2: king
+  std::vector<int> actions; //0: fold, 1: check, 2: bet
+  std::vector<std::vector<std::vector<int>>> regret, oppRegret, strategySum, oppStrategySum;
 
-KuhnPoker::KuhnPoker() {
-  pot = 0;
-  ante = 1;
-  roundBetSize = 1;
-  gameState = 0;
-  hasBet = false;
-  playingGame = true;
-  players.push_back(Player(this, 1));
-  players.push_back(Player(this, 2));
-  shuffleDeck();
-}
-
-KuhnPoker::~KuhnPoker() {}
-
-void KuhnPoker::playGame() {
-  dealCards();
-  while (playingGame) {
-    for (Player &p : players) {
-      if (!p.hasFolded()) {
-        p.playTurn();
-      }
-    }
-    if (gameState == 1) {
-      playingGame = false;
-    }
-    ++gameState;
+  KuhnPoker() {
+    cards = {0, 1, 2};
+    actions = {0, 1, 2};
+    regret = {{{0, 0, 0}, {0, 0, 0}, {0, 0, 0}}, {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}}, {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}}};
   }
-  int maxScore = 0;
-  int winnerSofar = -1;
-  for (Player &p : players) {
-    if (!p.hasFolded()) {
-      int temp = scoreHand(p.getCard());
-      std::cout << p.getNumber() << " " << temp << "\n";
-      if (maxScore < temp) {
-        maxScore = temp;
-        winnerSofar = p.getNumber();
-      }
-    }
-  }
-  std::cout << "player " << winnerSofar << " wins\n";
-}
 
-void KuhnPoker::resetGame() {
-  pot = 0;
-  ante = 1;
-  roundBetSize = 1;
-  gameState = 0;
-  hasBet = false;
-  playingGame = true;
-  shuffleDeck();
-}
+  std::vector<int> getStrategy(std::vector<double> regretSum) {
+    
+	}
 
-void KuhnPoker::shuffleDeck() {
-  emptyDeck();
-  std::vector<int> temp = cards; // supposedly copies but might not
-  while (!temp.empty()) {
-    int tempRand = 0; //std::experimental::randint(0, 100) % temp.size();
-    deck.push(temp[tempRand]);
-    temp.erase(temp.begin() + tempRand);
-  }
-}
+	int getAction(std::vector<double> strategy) {
+		std::mt19937 gen(std::random_device()); //optimization to be had here
+		return std::discrete_distribution<>(strategy.begin(), strategy.end())(gen);
+	}
 
-void KuhnPoker::emptyDeck() {
-  while (!deck.empty()) {
-    deck.pop();
-  }
-}
+	int getReward() {
 
-void KuhnPoker::dealCards() {
-  for (Player &p : players) {
-    p.setCard(deck.front());
-    deck.pop();
-  }
-}
+	}
 
-int KuhnPoker::scoreHand(int card) { return card; }
+	void train() {
 
-// getters
-int KuhnPoker::getAnte() { return ante; }
-int KuhnPoker::getGameState() { return gameState; }
-// setters
-void KuhnPoker::addToPot(int n) { pot += n; }
+	}
+};
