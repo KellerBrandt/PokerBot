@@ -5,86 +5,116 @@
 
 class RPS {
   private:
-	const std::vector< std::vector<int> > gameState = {
-		{0, -1, 1},
-		{1, 0, -1},
-		{-1, 1, 0}};
-
-	std::vector<int> actions;
-	std::vector<int> regret;
-	std::vector<int> oppRegret;
-	std::vector<double> probability;
-	std::vector<double> oppProbability;
-	std::mt19937 gen;
-	std::discrete_distribution<> dist;
-	std::discrete_distribution<> oppdist;
-
   public:
+	int numActions;
+	std::vector<double> possibleActions, regretSum, strategySum, oppRegretSum, oppStrategySum;
+	std::vector<std::vector<int>> actionUtility;
+	std::mt19937 gen;
+
 	RPS() {
-		actions = {0, 1, 2};
-		regret = {0, 0, 0};
-		oppRegret = {0, 0, 0};
-		probability = {1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0};
-		oppProbability = {1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0};
-		gen = std::mt19937(std::random_device{}());
-		dist = std::discrete_distribution<>(probability.begin(), probability.end());
-		oppdist = std::discrete_distribution<>(oppProbability.begin(), oppProbability.end());
+		numActions = 3;
+		possibleActions = {0, 1, 2};
+		actionUtility = {{0, -1, 1},
+						 {1, 0, -1},
+						 {-1, 1, 0}};
+		regretSum = {0, 0, 0};
+		strategySum = {0, 0, 0};
+		oppRegretSum = {0, 0, 0};
+		oppStrategySum = {0, 0, 0};
+		gen = std::mt19937(std::random_device()());
 	}
 
-	void playGame() {
-		dist = std::discrete_distribution<>(probability.begin(), probability.end());
-		oppdist = std::discrete_distribution<>(oppProbability.begin(), oppProbability.end());
-
-		int ai1 = getChoice();
-		int ai2 = getChoice();
-		int reward = getReward(ai1, ai2);
-		int oppReward = getReward(ai2, ai1);
-		std::vector<int> cfr = getCFR(ai2);
-		std::vector<int> oppcfr = getCFR(ai1);
-
-		int sum = 0, oppsum = 0;
-
-		//recalculates regret
-		for (int i = 0; i < 3; ++i) {
-			regret[i] += cfr[i] - reward;
-			oppRegret[i] += oppcfr[i] - oppReward;
-			sum += (regret[i] > 0) * regret[i];
-			oppsum += (oppRegret[i] > 0) * oppRegret[i];
+	std::vector<double> getStrategy(std::vector<double> regretSum) {
+		std::vector<double> newSum;
+		double normalizingSum = 0;
+		for (double i : regretSum)
+			newSum.push_back(i * (i > 0)); // could be source of error
+		for (double i : newSum)
+			normalizingSum += i;
+		if (normalizingSum > 0) {
+			for (int i = 0; i < numActions; ++i)
+				newSum[i] /= normalizingSum;
+		} else {
+			newSum = {1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0};
 		}
+		return newSum;
+	}
 
-		//recalculates strategies
-		for (int i = 0; i < 3; ++i) {
-			probability[i] = (double) regret[i] / sum;
-			oppProbability[i] = (double) oppRegret[i] / sum;
+	std::vector<double> getAverageStrategy(std::vector<double> strategySum) {
+		std::vector<double> averageStrategy = {0, 0, 0};
+		double normalizingSum = 0;
+		for (double i : strategySum)
+			normalizingSum += i;
+		for (int i = 0; i < numActions; ++i) {
+			if (normalizingSum > 0) {
+				averageStrategy[i] = strategySum[i] / normalizingSum;
+			} else {
+				averageStrategy[i] = 1.0 / numActions;
+			}
 		}
+		return averageStrategy;
 	}
 
-	void print() {
-		std::cout << "regret: " << regret[0] << " " << regret[1] << " " << regret[2] << "\n";
-		std::cout << "oppRegret: " << oppRegret[0] << " " << oppRegret[1] << " " << oppRegret[2] << "\n";
-		std::cout << "probability : " << probability[0] << " " << probability[1] << " " << probability[2] << "\n";
-		std::cout << "oppProbability : " << oppProbability[0] << " " << oppProbability[1] << " " << oppProbability[2] << "\n";
+	double getAction(std::vector<double> strategy) {
+		return std::discrete_distribution<>(strategy.begin(), strategy.end())(gen);
 	}
 
-	std::vector<int> getCFR(int b) {
-		return std::vector<int>{gameState[0][b], gameState[1][b], gameState[2][b]};
+	double getReward(int myAction, int oppAction) {
+		return actionUtility[myAction][oppAction];
 	}
 
-	int getChoice() {
-		return dist(gen);
-	}
+	void train(int iterations) {
+		std::vector<double> strategy, oppStrategy;
+		for (int i = 0; i < iterations; ++i) {
+			strategy = getStrategy(regretSum);
+			oppStrategy = getStrategy(oppRegretSum);
+			for (int i = 0; i < numActions; ++i) {
+				strategySum[i] += strategy[i];
+				oppStrategySum[i] += oppStrategy[i];
+			}
+			double myAction = getAction(strategy);
+			double oppAction = getAction(oppStrategy);
 
-	int getReward(int y, int x) {
-		return gameState[y][x];
+			double myReward = getReward(myAction, oppAction);
+			double oppReward = getReward(oppAction, myAction);
+
+			for (int i = 0; i < numActions; ++i) {
+				regretSum[i] += getReward(i, oppAction) - myReward;
+				oppRegretSum[i] += getReward(i, myAction) - oppReward;
+			}
+		}
 	}
 };
 
+static void printVector(std::vector<double> vect) {
+	for (double i : vect)
+		std::cout << i << " ";
+	std::cout << "\n";
+}
+
+static void train(RPS rps) {
+	rps.train(1000000);
+	std::vector<double> targetPolicy = rps.getAverageStrategy(rps.strategySum);
+	std::vector<double> oppTargetPolicy = rps.getAverageStrategy(rps.oppStrategySum);
+
+	std::cout << "Player 1 policy: ";
+	printVector(targetPolicy);
+	std::cout << "Player 2 policy: ";
+	printVector(oppTargetPolicy);
+	std::cout << "Player 1 regret sum: ";
+	printVector(rps.regretSum);
+	std::cout << "Player 2 regret sum: ";
+	printVector(rps.oppRegretSum);
+	std::cout << "Player 1 strategy sum: ";
+	printVector(rps.strategySum);
+	std::cout << "Player 2 strategy sum: ";
+	printVector(rps.oppStrategySum);
+}
+
 int main() {
 	RPS rps;
-	rps.print();
-	for (int i = 0; i < 10000; ++i) {
-		rps.playGame();
+	for (int i = 0; i < 1; ++i) {
+		train(rps);
+		std::cout << "\n";
 	}
-	rps.print();
-	return 0;
 }
