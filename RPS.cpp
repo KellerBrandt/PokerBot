@@ -67,7 +67,7 @@ class RPS {
 		std::vector<double> strategy, oppStrategy;
 		for (int i = 0; i < iterations; ++i) {
 			strategy = getStrategy(regretSum);
-			oppStrategy = getStrategy(oppRegretSum);
+			oppStrategy = {1.0, 0, 0};
 			for (int i = 0; i < numActions; ++i) {
 				strategySum[i] += strategy[i];
 				oppStrategySum[i] += oppStrategy[i];
