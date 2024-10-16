@@ -1,9 +1,9 @@
+#include <algorithm>
 #include <iostream>
 #include <random>
 #include <stdio.h>
 #include <unordered_map>
 #include <vector>
-#include <algorithm>
 
 class KuhnPoker {
   private:
@@ -12,31 +12,36 @@ class KuhnPoker {
 	  public:
 		Node *parent, *left, *right; // left is pass, right is bet
 		std::vector<int> regretSum, strategySum;
-		int history; // 0 means you start, 1 means they pass, 2 means they bet
+		int history; // 1: pass, 2: bet
 		int card;
-		bool isShowdown;
 
-		Node(int card, int history, bool isShowdown) {
-			this->card = card;
-			this->history = history;
+		Node(int card, int history) : card(card), history(history) {
 			regretSum = {0, 0};
 			strategySum = {0, 0};
-			this->isShowdown = isShowdown;
 		}
+
+		Node() : card(-1), history(-1) {} // Default constructor
 	};
 
   public:
 	std::vector<int> cards;	  // 0: jack, 1: queen, 2: king
-	std::vector<int> actions; // 0: pass, 1: bet
+	std::vector<int> actions; // 1: pass, 2: bet
 	std::mt19937 gen;
+	// key: card number, followed by the history
 	std::unordered_map<int, Node> p1Nodes, p2Nodes;
 	int actionCount;
 
 	KuhnPoker() {
 		cards = {0, 1, 2};
-		actions = {0, 1};
+		actions = {1, 2};
 		gen = std::mt19937(std::random_device()());
 		actionCount = 2;
+		for (int i = 0; i < sizeof(cards); ++i) {
+			p1Nodes.insert({getKey(i, 0), Node(i, 0)}); // p1 always starts, so no history
+			for (int j = 0; j < actionCount; ++j) {
+				p2Nodes.insert({getKey(i, j + 1), Node(i, j + 1)});
+			}
+		}
 	}
 
 	std::vector<double> getStrategy(std::vector<int> regretSum) {
@@ -59,14 +64,18 @@ class KuhnPoker {
 		return std::discrete_distribution<>(strategy.begin(), strategy.end())(gen);
 	}
 
+	// need implement
 	int getReward() {
+		return 0;
 	}
 
 	int getScore(int cardInd) {
 		return cards[cardInd];
 	}
 
+	// need implement
 	int cfr(Node &node) {
+		return 0;
 	}
 
 	void shuffleDeck() {
@@ -94,20 +103,51 @@ class KuhnPoker {
 	*/
 
 	void playGame(int p1Card, int p2Card) {
-		
+		Node p1Node = p1Nodes[getKey(p1Card, 0)];
+
+		std::vector<double> p1Strategy = getStrategy(p1Node.regretSum);
+
+		std::cout << p1Strategy[0] << " " << p1Strategy[1] << "\n";
 	}
 
 	void train(int iterations) {
 		std::vector<double> strategy, oppStrategy;
 		for (int i = 0; i < iterations; ++i) {
-			
+			playGame(0, 1);
 		}
 	}
 
-	Node getNode(int card, int history) {
-
+	// wrong
+	int getKey(int card, int history) {
+		int exponent = (std::log10(history));  //might be a source of time inneficiency
+		return card * std::pow(10, exponent + 1) + history;
 	}
 };
+
+/*int main() {
+	KuhnPoker kp;
+	kp.playGame(0, 1);
+	return 0;
+}*/
+
+int nearestPowerOf10(double num) {
+    if (num <= 0) {
+        std::cerr << "Number must be greater than 0" << std::endl;
+        return -1; // Invalid input
+    }
+    
+    int exponent = (int)(std::log10(num)); // Find the nearest integer exponent
+    return std::pow(10, exponent); // Raise 10 to that exponent
+}
+
+int main() {
+    double number = 100;
+
+    int nearestPower = nearestPowerOf10(number);
+    std::cout << "The nearest power of 10 is: " << nearestPower << std::endl;
+
+    return 0;
+}
 
 /*
 Expected results:

@@ -111,6 +111,7 @@ static void train(RPS rps) {
 	printVector(rps.oppStrategySum);
 }
 
+/*
 int main() {
 	RPS rps;
 	for (int i = 0; i < 1; ++i) {
@@ -118,3 +119,4 @@ int main() {
 		std::cout << "\n";
 	}
 }
+*/
