@@ -12,7 +12,8 @@ class KuhnPoker {
 	  public:
 		Node *parent, *left, *right; // left is pass, right is bet
 		std::vector<int> regretSum, strategySum;
-		int history; // 1: pass, 2: bet
+		// history goes right to left, so the rightmost value is the first action to occur
+		int history; // 1: pass, 2: bet, 0:nothing
 		int card;
 
 		Node(int card, int history) : card(card), history(history) {
@@ -28,7 +29,7 @@ class KuhnPoker {
 	std::vector<int> actions; // 1: pass, 2: bet
 	std::mt19937 gen;
 	// key: card number, followed by the history
-	std::unordered_map<int, Node> p1Nodes, p2Nodes;
+	std::unordered_map<int, Node> nodes;
 	int actionCount;
 
 	KuhnPoker() {
@@ -36,12 +37,10 @@ class KuhnPoker {
 		actions = {1, 2};
 		gen = std::mt19937(std::random_device()());
 		actionCount = 2;
-		for (int i = 0; i < sizeof(cards); ++i) {
-			p1Nodes.insert({getKey(i, 0), Node(i, 0)}); // p1 always starts, so no history
-			for (int j = 0; j < actionCount; ++j) {
-				p2Nodes.insert({getKey(i, j + 1), Node(i, j + 1)});
-			}
-		}
+		// add the first three nodes
+		nodes[getKey(0, 0, 0)] = Node(0, 0);
+		nodes[getKey(0, 1, 0)] = Node(1, 0);
+		nodes[getKey(0, 2, 0)] = Node(2, 0);
 	}
 
 	std::vector<double> getStrategy(std::vector<int> regretSum) {
@@ -60,8 +59,9 @@ class KuhnPoker {
 		return newSum;
 	}
 
+	// returns index of action to take
 	int getAction(std::vector<double> strategy) {
-		return std::discrete_distribution<>(strategy.begin(), strategy.end())(gen);
+		return actions[std::discrete_distribution<>(strategy.begin(), strategy.end())(gen)];
 	}
 
 	// need implement
@@ -87,66 +87,79 @@ class KuhnPoker {
 	check:
 		p2 check or bet:
 		check:
-			showdown
+			showdown 11
 		bet:
 			p1 check or bet:
 			check:
-				p2 wins
+				p2 wins 121
 			bet:
-				showdown
+				showdown 122
 	bet:
 		p2 check or bet:
 		check:
-			p1 wins
+			p1 wins 21
 		bet:
-			showdown
+			showdown 22
 	*/
 
-	void playGame(int p1Card, int p2Card) {
-		Node p1Node = p1Nodes[getKey(p1Card, 0)];
+	void playGame() {
+		shuffleDeck();
+		Node currentNode = nodes[getKey(0, cards[0], 0)];
+		std::vector<double> currentPlayerStrategy;
+		int currentPlayerAction;
+		int history = 0;
+		int currentPlayer = 0; // 0 is p1, 1 is p2
 
-		std::vector<double> p1Strategy = getStrategy(p1Node.regretSum);
+		while (!isEndNode(currentNode)) {
+			currentPlayerStrategy = getStrategy(currentNode.regretSum);
+			currentPlayerAction = getAction(currentPlayerStrategy);
+			history = history * 10 + currentPlayerAction;
 
-		std::cout << p1Strategy[0] << " " << p1Strategy[1] << "\n";
+			std::cout << "currentPlayerAction: " << currentPlayerAction << "\n";
+			std::cout << "history: " << history << "\n";
+			std::cout << "currentPlayer: " << currentPlayer << "\n";
+
+			currentPlayer = !currentPlayer;
+			if (nodes[getKey(currentPlayer, cards[currentPlayer], history)].card == -1) {
+				nodes[getKey(currentPlayer, cards[currentPlayer], history)] = Node(cards[currentPlayer - 1], history);
+			}
+			currentNode = nodes[getKey(currentPlayer, cards[currentPlayer], history)];
+
+			std::cout << "isEndNode(currentNode): " << isEndNode(currentNode) << "\n";
+
+			std::cout << "\n";
+		}
+		std::cout << "\n";
 	}
 
 	void train(int iterations) {
 		std::vector<double> strategy, oppStrategy;
 		for (int i = 0; i < iterations; ++i) {
-			playGame(0, 1);
+			playGame();
 		}
 	}
 
-	// wrong
-	int getKey(int card, int history) {
-		int exponent = (std::log10(history));  //might be a source of time inneficiency
-		return card * std::pow(10, exponent + 1) + history;
+	// keys: playerNumber cardNumber history concatenated in a single int
+	int getKey(int player, int card, int history) {
+		int exponent = (std::log10(history)); // might be a source of time inneficiency
+		return (player + 1) * std::pow(10, exponent + 2) + card * std::pow(10, exponent + 1) + history;
+	}
+
+	bool isEndNode(Node n) {
+		// may be a source of error
+		if (n.history == 11 || n.history > 12) {
+			return true;
+		}
+		return false;
 	}
 };
 
-/*int main() {
-	KuhnPoker kp;
-	kp.playGame(0, 1);
-	return 0;
-}*/
-
-int nearestPowerOf10(double num) {
-    if (num <= 0) {
-        std::cerr << "Number must be greater than 0" << std::endl;
-        return -1; // Invalid input
-    }
-    
-    int exponent = (int)(std::log10(num)); // Find the nearest integer exponent
-    return std::pow(10, exponent); // Raise 10 to that exponent
-}
-
 int main() {
-    double number = 100;
-
-    int nearestPower = nearestPowerOf10(number);
-    std::cout << "The nearest power of 10 is: " << nearestPower << std::endl;
-
-    return 0;
+	KuhnPoker kp;
+	for (int i = 0; i < 10; ++i) {
+		kp.playGame();
+	}
+	return 0;
 }
 
 /*
