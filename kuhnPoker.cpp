@@ -96,25 +96,27 @@ class KuhnPoker {
 		std::shuffle(cards.begin(), cards.end(), gen);
 	}
 
+	// fix game loop
 	void playGame() {
 		shuffleDeck();
-		Node currentNode;
+		Node& currentNode = nodes[getKey(0, cards[0], 0)];
 		std::vector<double> currentPlayerStrategy;
 		int currentPlayerAction;
 		int history = 0;
 		int currentPlayer = 0; // 0 is p1, 1 is p2
 
-		while (!(history == 11 || history > 12)) {
-			int key = getKey(currentPlayer, cards[currentPlayer], history);
-			if (nodes[key].card == -1) {
-				nodes[key] = Node(cards[currentPlayer - 1], history, key);
-			}
-			currentNode = nodes[key];
+		while (!isEndNode(currentNode)) {
 			currentPlayerStrategy = getStrategy(currentNode.regretSum);
 			currentPlayerAction = getAction(currentPlayerStrategy);
 			history = history * 10 + currentPlayerAction;
 
+			++currentNode.strategySum[currentPlayerAction - 1];
+
 			currentPlayer = !currentPlayer;
+			if (nodes[getKey(currentPlayer, cards[currentPlayer], history)].card == -1) {
+				nodes[getKey(currentPlayer, cards[currentPlayer], history)] = Node(cards[currentPlayer - 1], history, getKey(currentPlayer, cards[currentPlayer], history));
+			}
+			currentNode = nodes[getKey(currentPlayer, cards[currentPlayer], history)];
 		}
 	}
 
@@ -128,6 +130,14 @@ class KuhnPoker {
 	int getKey(int player, int card, int history) {
 		int exponent = (std::log10(history)); // might be a source of time inneficiency
 		return (player + 1) * std::pow(10, exponent + 2) + card * std::pow(10, exponent + 1) + history;
+	}
+
+	bool isEndNode(Node n) {
+		// may be a source of error
+		if (n.history == 11 || n.history > 12) {
+			return true;
+		}
+		return false;
 	}
 };
 
@@ -156,7 +166,7 @@ int main() {
 
 	std::cout << "Player 2:\n";
 	for (int i = 13; i < 25; ++i) {
-		std::cout << nodes[i].key << " " << nodes[i].toString() << "\n";
+		std::cout << nodes[i].toString() << "\n";
 	}
 	std::cout << "\n";
 
