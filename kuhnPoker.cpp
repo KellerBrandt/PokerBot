@@ -30,9 +30,10 @@ class Node {
 
 	std::string toString() {
 		std::string returnString;
+		int sum = strategySum[0] + strategySum[1];
 		returnString += std::to_string(card) + " ";
 		returnString += std::to_string(history) + " ";
-		returnString += std::to_string(strategySum[0]) + " " + std::to_string(strategySum[1]);
+		returnString += std::to_string((double) strategySum[0] / sum) + " " + std::to_string((double) strategySum[1] / sum);
 		return returnString;
 	}
 };
@@ -96,41 +97,50 @@ class KuhnPoker {
 		std::shuffle(cards.begin(), cards.end(), gen);
 	}
 
-	// fix game loop
-	/* void playGame() {
-		shuffleDeck();
-		Node currentNode = nodes[getKey(0, cards[0], 0)]; //need to make this a reference
-		std::vector<double> currentPlayerStrategy;
-		int currentPlayerAction;
-		int history = 0;
-		int currentPlayer = 0; // 0 is p1, 1 is p2
-
-		while (!isEndNode(currentNode)) {
-			currentPlayerStrategy = getStrategy(currentNode.regretSum);
-			currentPlayerAction = getAction(currentPlayerStrategy);
-			history = history * 10 + currentPlayerAction;
-
-			++currentNode.strategySum[currentPlayerAction - 1];
-
-			currentPlayer = !currentPlayer;
-			if (nodes[getKey(currentPlayer, cards[currentPlayer], history)].card == -1) {
-				nodes[getKey(currentPlayer, cards[currentPlayer], history)] = Node(cards[currentPlayer - 1], history, getKey(currentPlayer, cards[currentPlayer], history));
-			}
-			currentNode = nodes[getKey(currentPlayer, cards[currentPlayer], history)];
-		}
-	} */
+	/*
+	p1 check or bet:
+	check: 1
+		p2 check or bet:
+		check: showdown 11
+		bet:
+			p1 check or bet:
+			check: p2 wins 121
+			bet: showdown 122
+	bet: 2
+		p2 check or bet:
+		check: p1 wins 21
+		bet: showdown 22
+	*/
 
 	void playGame() {
 		shuffleDeck();
-		Node& currentNode = nodes[getKey(0, cards[0], 0)];
+		Node *currentNode;
 		std::vector<double> currentPlayerStrategy;
 		int currentPlayerAction;
 		int currentPlayer = 0; // 0 is p1, 1 is p2
 		int history = 0;
-		
-		while (!(history == 11 || history > 12)) {
 
+		while (!(history == 11 || history > 12)) {
+			int key = getKey(currentPlayer, cards[currentPlayer], history);
+			if (nodes[key].card == -1) {
+				nodes[key] = Node(cards[currentPlayer], history, key);
+			}
+			currentNode = &nodes[key];
+
+			currentPlayerStrategy = getStrategy(currentNode->regretSum);
+			currentPlayerAction = getAction(currentPlayerStrategy);
+			history = history * 10 + currentPlayerAction;
+
+			++currentNode->strategySum[currentPlayerAction - 1];
+
+			currentPlayer = !currentPlayer;
 		}
+	}
+
+	// keys: playerNumber cardNumber history concatenated in a single int
+	int getKey(int player, int card, int history) {
+		int exponent = (std::log10(history + 1)); // might be a source of time inneficiency
+		return (player + 1) * std::pow(10, exponent + 2) + card * std::pow(10, exponent + 1) + history;
 	}
 
 	void train(int iterations) {
@@ -138,21 +148,19 @@ class KuhnPoker {
 			playGame();
 		}
 	}
-
-	// keys: playerNumber cardNumber history concatenated in a single int
-	int getKey(int player, int card, int history) {
-		int exponent = (std::log10(history)); // might be a source of time inneficiency
-		return (player + 1) * std::pow(10, exponent + 2) + card * std::pow(10, exponent + 1) + history;
-	}
 };
 
 bool comp(Node a, Node b) {
-	return a.getPlayer() < b.getPlayer();
+	int playerA = a.getPlayer(), playerB = b.getPlayer();
+	if (playerA == playerB) {
+		return a.card < b.card;
+	}
+	return playerA < playerB;
 }
 
 int main() {
 	KuhnPoker kp;
-	for (int i = 0; i < 10000; ++i) {
+	for (int i = 0; i < 100000; ++i) {
 		kp.playGame();
 	}
 	int count = 0;
@@ -164,13 +172,13 @@ int main() {
 	std::sort(nodes.begin(), nodes.end(), comp);
 
 	std::cout << "Player 1:\n";
-	for (int i = 1; i < 13; ++i) {
-		std::cout << nodes[i].key << " " << nodes[i].toString() << "\n";
+	for (int i = 0; i < count / 2; ++i) {
+		std::cout << nodes[i].toString() << "\n";
 	}
 	std::cout << "\n";
 
 	std::cout << "Player 2:\n";
-	for (int i = 13; i < 25; ++i) {
+	for (int i = count / 2; i < count; ++i) {
 		std::cout << nodes[i].toString() << "\n";
 	}
 	std::cout << "\n";
