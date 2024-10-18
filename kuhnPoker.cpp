@@ -28,7 +28,6 @@ class KuhnPoker {
 	std::vector<int> cards;	  // 0: jack, 1: queen, 2: king
 	std::vector<int> actions; // 1: pass, 2: bet
 	std::mt19937 gen;
-	// key: card number, followed by the history
 	std::unordered_map<int, Node> nodes;
 	int actionCount;
 
@@ -47,7 +46,7 @@ class KuhnPoker {
 		std::vector<double> newSum;
 		double normalizingSum = 0;
 		for (double i : regretSum)
-			newSum.push_back(i * (i > 0)); // could be source of error
+			newSum.push_back(i * (i > 0));
 		for (double i : newSum)
 			normalizingSum += i;
 		if (normalizingSum > 0) {
@@ -59,7 +58,7 @@ class KuhnPoker {
 		return newSum;
 	}
 
-	// returns index of action to take
+	// returns action to take
 	int getAction(std::vector<double> strategy) {
 		return actions[std::discrete_distribution<>(strategy.begin(), strategy.end())(gen)];
 	}
@@ -82,26 +81,6 @@ class KuhnPoker {
 		std::shuffle(cards.begin(), cards.end(), gen);
 	}
 
-	/*
-	p1 check or bet:
-	check:
-		p2 check or bet:
-		check:
-			showdown 11
-		bet:
-			p1 check or bet:
-			check:
-				p2 wins 121
-			bet:
-				showdown 122
-	bet:
-		p2 check or bet:
-		check:
-			p1 wins 21
-		bet:
-			showdown 22
-	*/
-
 	void playGame() {
 		shuffleDeck();
 		Node currentNode = nodes[getKey(0, cards[0], 0)];
@@ -115,25 +94,15 @@ class KuhnPoker {
 			currentPlayerAction = getAction(currentPlayerStrategy);
 			history = history * 10 + currentPlayerAction;
 
-			std::cout << "currentPlayerAction: " << currentPlayerAction << "\n";
-			std::cout << "history: " << history << "\n";
-			std::cout << "currentPlayer: " << currentPlayer << "\n";
-
 			currentPlayer = !currentPlayer;
 			if (nodes[getKey(currentPlayer, cards[currentPlayer], history)].card == -1) {
 				nodes[getKey(currentPlayer, cards[currentPlayer], history)] = Node(cards[currentPlayer - 1], history);
 			}
 			currentNode = nodes[getKey(currentPlayer, cards[currentPlayer], history)];
-
-			std::cout << "isEndNode(currentNode): " << isEndNode(currentNode) << "\n";
-
-			std::cout << "\n";
 		}
-		std::cout << "\n";
 	}
 
 	void train(int iterations) {
-		std::vector<double> strategy, oppStrategy;
 		for (int i = 0; i < iterations; ++i) {
 			playGame();
 		}
