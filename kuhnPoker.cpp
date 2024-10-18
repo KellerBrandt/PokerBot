@@ -99,7 +99,7 @@ class KuhnPoker {
 	// fix game loop
 	void playGame() {
 		shuffleDeck();
-		Node& currentNode = nodes[getKey(0, cards[0], 0)];
+		Node currentNode = nodes[getKey(0, cards[0], 0)]; //need to make this a reference
 		std::vector<double> currentPlayerStrategy;
 		int currentPlayerAction;
 		int history = 0;
