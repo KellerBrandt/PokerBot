@@ -33,7 +33,7 @@ class Node {
 		int sum = strategySum[0] + strategySum[1];
 		returnString += std::to_string(card) + " ";
 		returnString += std::to_string(history) + " ";
-		returnString += std::to_string((double) strategySum[0] / sum) + " " + std::to_string((double) strategySum[1] / sum);
+		returnString += std::to_string((double)strategySum[0] / sum) + " " + std::to_string((double)strategySum[1] / sum);
 		return returnString;
 	}
 };
@@ -45,6 +45,7 @@ class KuhnPoker {
 	std::vector<int> actions; // 1: pass, 2: bet
 	std::mt19937 gen;
 	std::unordered_map<int, Node> nodes;
+	std::unordered_map<int, int> rewards;
 	int actionCount;
 
 	KuhnPoker() {
@@ -56,6 +57,8 @@ class KuhnPoker {
 		nodes[getKey(0, 0, 0)] = Node(0, 0, getKey(0, 0, 0));
 		nodes[getKey(0, 1, 0)] = Node(1, 0, getKey(0, 1, 0));
 		nodes[getKey(0, 2, 0)] = Node(2, 0, getKey(0, 2, 0));
+
+		rewards = {{11, 1}, {21, 1}, {22, 2}, {121, 1}, {122, 2}};
 	}
 
 	std::vector<double> getStrategy(std::vector<int> regretSum) {
@@ -79,8 +82,39 @@ class KuhnPoker {
 		return actions[std::discrete_distribution<>(strategy.begin(), strategy.end())(gen)];
 	}
 
-	// need implement
-	int getReward() {
+	// make more efficient and fix so yoyu dont need node
+	int getReward(int player, Node &node, int lastAction) {
+		if (player == node.getPlayer()) {
+			switch (node.history * 10 + lastAction) {
+			case 11:
+				return 2 * (cards[player] > cards[!player]) - 1;
+			case 21:
+				return -1;
+			case 22:
+				return 4 * (cards[player] > cards[!player]) - 2;
+			case 121:
+				return -1;
+			case 122:
+				return 4 * (cards[player] > cards[!player]) - 2;
+			default:
+				return 0;
+			}
+		} else {
+			switch (node.history * 10 + lastAction) {
+			case 11:
+				return 2 * (cards[player] > cards[!player]) - 1;
+			case 21:
+				return 1;
+			case 22:
+				return 4 * (cards[player] > cards[!player]) - 2;
+			case 121:
+				return 1;
+			case 122:
+				return 4 * (cards[player] > cards[!player]) - 2;
+			default:
+				return 0;
+			}
+		}
 		return 0;
 	}
 
@@ -88,9 +122,16 @@ class KuhnPoker {
 		return cards[cardInd];
 	}
 
-	// need implement
-	int cfr(Node &node) {
-		return 0;
+	int cfr(int player, int history, Node &node, int truPath) {
+		/*
+		if end node, return the reward
+		otherwise, get the reward of the lower trees, then update the regretSum and return the reward
+		*/
+		if (history == 11 || history > 12) {
+			return getReward(player, node, history % 10);//remove node from this call
+		}
+		int leftReward = cfr();
+		int rightReward = cfr();
 	}
 
 	void shuffleDeck() {
@@ -101,18 +142,18 @@ class KuhnPoker {
 	p1 check or bet:
 	check: 1
 		p2 check or bet:
-		check: showdown 11
+		check: showdown 11, +1 to winner
 		bet:
 			p1 check or bet:
-			check: p2 wins 121
-			bet: showdown 122
+			check: p2 wins 121 +1 to p2
+			bet: showdown 122, +2 to winner
 	bet: 2
 		p2 check or bet:
-		check: p1 wins 21
-		bet: showdown 22
+		check: p1 wins 21, +1 to p1
+		bet: showdown 22, +2 to winner
 	*/
 
-	void playGame() {
+	int playGame() {
 		shuffleDeck();
 		Node *currentNode;
 		std::vector<double> currentPlayerStrategy;
@@ -135,6 +176,8 @@ class KuhnPoker {
 
 			currentPlayer = !currentPlayer;
 		}
+
+		return history;
 	}
 
 	// keys: playerNumber cardNumber history concatenated in a single int
@@ -145,7 +188,9 @@ class KuhnPoker {
 
 	void train(int iterations) {
 		for (int i = 0; i < iterations; ++i) {
-			playGame();
+			int result = playGame();
+			// might need to do some pointer/reference stuff with the return from playGame();
+			cfr(0, 0, nodes[getKey(0, cards[0], 0)], result);
 		}
 	}
 };
