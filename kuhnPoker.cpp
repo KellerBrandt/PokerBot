@@ -143,26 +143,28 @@ class KuhnPoker {
 		return cards[cardInd];
 	}
 
-	double cfr(int player, int history, int card, int truePath) {
-		if (history == 11 || history > 12) {
-			return getReward(player, history);
-		}
-		Node &node = nodes[getKey(card, history)];
-		
-		int leftReward = cfr(player, history * 10 + 1, card, truePath);
-		int rightReward = cfr(player, history * 10 + 2, card, truePath);
+	/* 	double cfr(int player, int history, int card, int truePath) {
+			if (history == 11 || history > 12) {
+				return getReward(player, history);
+			}
+			Node &node = nodes[getKey(card, history)];
 
-		std::vector<double> strategy = getStrategy(node.regretSum); // maybe move infront of regret call
+			int leftReward = cfr(player, history * 10 + 1, card, truePath);
+			int rightReward = cfr(player, history * 10 + 2, card, truePath);
 
-		if (player == node.player) {
-			node.regretSum[0] += leftReward - getReward(player, truePath);
-			node.regretSum[1] += rightReward - getReward(player, truePath);
-			//std::cout << "RegretSum: " << node.regretSum[0] << " " << node.regretSum[1] << ", " << node.regretSum[0] + node.regretSum[1] << "\n";
-		}
+			std::vector<double> strategy = getStrategy(node.regretSum); // maybe move infront of regret call
 
-		//return leftReward * strategy[0] + rightReward * strategy[1];
-		return leftReward + rightReward;
-	}
+			if (player == node.player) {
+				node.regretSum[0] += leftReward - getReward(player, truePath);
+				node.regretSum[1] += rightReward - getReward(player, truePath);
+				//std::cout << "RegretSum: " << node.regretSum[0] << " " << node.regretSum[1] << ", " << node.regretSum[0] + node.regretSum[1] << "\n";
+			}
+
+			//return leftReward * strategy[0] + rightReward * strategy[1];
+			return leftReward + rightReward;
+		} */
+
+	// supposed correct cfr fopr testing
 
 	void shuffleDeck() {
 		std::shuffle(cards.begin(), cards.end(), gen);
@@ -216,14 +218,83 @@ class KuhnPoker {
 	void train(int iterations) {
 		for (int i = 0; i < iterations; ++i) {
 			int result = playGame();
-			// might need to do some pointer/reference stuff with the return from playGame();
-			cfr(0, 0, cards[0], result);
-			int temp = result;
-			while (temp / 10 > 0) {
-				temp /= 10;
-			}
-			cfr(1, temp, cards[1], result);
+			cfr("", 1, 1);
 		}
+	}
+
+
+
+
+	bool is_terminal(const std::string &history) {
+		if (history ) {
+
+		}
+	}
+
+	double get_reward(const std::string &history, int card_player, int card_opponent) {
+		// Implement the reward calculation logic
+	}
+
+	struct Node {
+		std::vector<double> strategy;
+		std::vector<double> regret_sum;
+		double reach_pr;
+		std::vector<std::string> action_dict;
+	};
+
+	Node get_node(int player_card, const std::string &history) {
+		// Implement the node retrieval based on player_card and history
+	}
+
+	double cfr(const std::string &history, double pr_1, double pr_2) {
+		int n = history.size();
+		bool is_player_1 = (n % 2 == 0);
+		int player_card = is_player_1 ? cards[0] : cards[1];
+
+		if (is_terminal(history)) {
+			int card_player = is_player_1 ? cards[0] : cards[1];
+			int card_opponent = is_player_1 ? cards[1] : cards[0];
+			double reward = get_reward(history, card_player, card_opponent);
+			return reward;
+		}
+
+		Node node = get_node(player_card, history);
+		std::vector<double> &strategy = node.strategy;
+
+		// Counterfactual utility per action.
+		std::vector<double> action_utils(n_actions, 0.0);
+
+		for (int act = 0; act < n_actions; ++act) {
+			std::string next_history = history + node.action_dict[act];
+			if (is_player_1) {
+				action_utils[act] = -1.0 * cfr(next_history, pr_1 * strategy[act], pr_2);
+			} else {
+				action_utils[act] = -1.0 * cfr(next_history, pr_1, pr_2 * strategy[act]);
+			}
+		}
+
+		// Utility of information set.
+		double util = std::inner_product(action_utils.begin(), action_utils.end(), strategy.begin(), 0.0);
+
+		// Calculate regrets.
+		std::vector<double> regrets(n_actions);
+		for (int act = 0; act < n_actions; ++act) {
+			regrets[act] = action_utils[act] - util;
+		}
+
+		if (is_player_1) {
+			node.reach_pr += pr_1;
+			for (int act = 0; act < n_actions; ++act) {
+				node.regret_sum[act] += pr_2 * regrets[act];
+			}
+		} else {
+			node.reach_pr += pr_2;
+			for (int act = 0; act < n_actions; ++act) {
+				node.regret_sum[act] += pr_1 * regrets[act];
+			}
+		}
+
+		return util;
 	}
 };
 
