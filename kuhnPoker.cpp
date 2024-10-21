@@ -19,7 +19,9 @@ class Node {
 		strategySum = {0, 0};
 	}
 
-	Node() : card(-1), history(-1) {} // Default constructor
+	Node() : card(-1), history(-1) {
+		std::cout << "default Node made.............................................................................\n";
+	} // Default constructor
 
 	int getPlayer() {
 		return player;
@@ -34,7 +36,11 @@ class Node {
 		} else {
 			returnString += std::to_string(history) + " ";
 		}
-		returnString += std::to_string((double)strategySum[0] / sum) + " " + std::to_string((double)strategySum[1] / sum);
+		if (sum == 0) {
+			returnString += std::to_string((double)1 / 2) + " " + std::to_string((double)1 / 2);
+		} else {
+			returnString += std::to_string((double)strategySum[0] / sum) + " " + std::to_string((double)strategySum[1] / sum);
+		}
 		return returnString;
 	}
 };
@@ -123,23 +129,23 @@ class KuhnPoker {
 		return cards[cardInd];
 	}
 
-	int cfr(int player, int history, Node &node, int truePath) {
-		std::cout << "cfrStart\n";
-		std::cout << node.card << "\n";
+	int cfr(int player, int history, int card, int truePath) {
 		if (history == 11 || history > 12) {
-			std::cout << "baseCase\n";
 			return getReward(player, history);
 		}
+		Node &node = nodes[getKey(card, history)];
 		
-		int leftReward = cfr(player, history, nodes[getKey(node.card, history * 10 + 1)], truePath);
-		int rightReward = cfr(player, history, nodes[getKey(node.card, history * 10 + 2)], truePath);
-
-		node.regretSum[0] += leftReward - getReward(player, truePath);
-		node.regretSum[1] += rightReward - getReward(player, truePath);
+		int leftReward = cfr(player, history * 10 + 1, card, truePath);
+		int rightReward = cfr(player, history * 10 + 2, card, truePath);
 
 		std::vector<double> strategy = getStrategy(node.regretSum); // maybe move infront of regret call
 
-		return leftReward * strategy[0] + rightReward * strategy[1]; // multiply by probabilities
+		if (player == node.player) {
+			node.regretSum[0] += leftReward - getReward(player, truePath);
+			node.regretSum[1] += rightReward - getReward(player, truePath);
+		}
+
+		return leftReward * strategy[0] + rightReward * strategy[1];
 	}
 
 	void shuffleDeck() {
@@ -223,13 +229,14 @@ class KuhnPoker {
 
 	void train(int iterations) {
 		for (int i = 0; i < iterations; ++i) {
-			std::cout << "playGame\n";
 			int result = playGame();
 			// might need to do some pointer/reference stuff with the return from playGame();
-			std::cout << "cfr1\n";
-			cfr(0, 0, nodes[getKey(cards[0], 0)], result);
-			std::cout << "cfr2\n";
-			cfr(1, 0, nodes[getKey(cards[0], 0)], result);
+			cfr(0, 0, cards[0], result);
+			int temp = result;
+			while (temp / 10 > 0) {
+				temp /= 10;
+			}
+			cfr(1, 0, cards[1], result);
 		}
 	}
 };
@@ -237,17 +244,21 @@ class KuhnPoker {
 bool comp(Node a, Node b) {
 	int playerA = a.getPlayer(), playerB = b.getPlayer();
 	if (playerA == playerB) {
-		return a.card < b.card;
+		if (a.card == b.card) {
+			return a.history < b.history;
+		} else {
+			return a.card < b.card;
+		}
 	}
 	return playerA < playerB;
 }
 
 int main() {
 	KuhnPoker kp;
-	for (int i = 0; i < 1000; ++i) {
+	for (int i = 0; i < 10000; ++i) {
 		kp.playTestGame();
-	} 
-	kp.train(10000);
+	}
+	kp.train(50000);
 	int count = 0;
 	std::vector<Node> nodes;
 	for (auto &pair : kp.nodes) {
