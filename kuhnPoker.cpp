@@ -61,9 +61,23 @@ class KuhnPoker {
 		gen = std::mt19937(std::random_device()());
 		actionCount = 2;
 		// add the first three nodes
+		std::cout << "makingnodes\n";
 		nodes[getKey(0, 0)] = Node(0, 0, getKey(0, 0), 0);
 		nodes[getKey(1, 0)] = Node(1, 0, getKey(1, 0), 0);
 		nodes[getKey(2, 0)] = Node(2, 0, getKey(2, 0), 0);
+
+		nodes[getKey(0, 12)] = Node(0, 12, getKey(0, 12), 0);
+		nodes[getKey(1, 12)] = Node(1, 12, getKey(1, 12), 0);
+		nodes[getKey(2, 12)] = Node(2, 12, getKey(2, 12), 0);
+
+		nodes[getKey(0, 1)] = Node(0, 1, getKey(0, 1), 1);
+		nodes[getKey(1, 1)] = Node(1, 1, getKey(1, 1), 1);
+		nodes[getKey(2, 1)] = Node(2, 1, getKey(2, 1), 1);
+
+		nodes[getKey(0, 2)] = Node(0, 2, getKey(0, 2), 1);
+		nodes[getKey(1, 2)] = Node(1, 2, getKey(1, 2), 1);
+		nodes[getKey(2, 2)] = Node(2, 2, getKey(2, 2), 1);
+		std::cout << "afternodes\n";
 
 		rewards = {{11, 1}, {21, 1}, {22, 2}, {121, 1}, {122, 2}};
 	}
@@ -129,7 +143,7 @@ class KuhnPoker {
 		return cards[cardInd];
 	}
 
-	int cfr(int player, int history, int card, int truePath) {
+	double cfr(int player, int history, int card, int truePath) {
 		if (history == 11 || history > 12) {
 			return getReward(player, history);
 		}
@@ -143,9 +157,11 @@ class KuhnPoker {
 		if (player == node.player) {
 			node.regretSum[0] += leftReward - getReward(player, truePath);
 			node.regretSum[1] += rightReward - getReward(player, truePath);
+			//std::cout << "RegretSum: " << node.regretSum[0] << " " << node.regretSum[1] << ", " << node.regretSum[0] + node.regretSum[1] << "\n";
 		}
 
-		return leftReward * strategy[0] + rightReward * strategy[1];
+		//return leftReward * strategy[0] + rightReward * strategy[1];
+		return leftReward + rightReward;
 	}
 
 	void shuffleDeck() {
@@ -177,9 +193,6 @@ class KuhnPoker {
 
 		while (!(history == 11 || history > 12)) {
 			int key = getKey(cards[currentPlayer], history);
-			if (nodes[key].card == -1) {
-				nodes[key] = Node(cards[currentPlayer], history, key, currentPlayer);
-			}
 			currentNode = &nodes[key];
 
 			currentPlayerStrategy = getStrategy(currentNode->regretSum);
@@ -187,33 +200,6 @@ class KuhnPoker {
 			history = history * 10 + currentPlayerAction;
 
 			++currentNode->strategySum[currentPlayerAction - 1];
-
-			currentPlayer = !currentPlayer;
-		}
-
-		return history;
-	}
-
-	int playTestGame() {
-		shuffleDeck();
-		Node *currentNode;
-		std::vector<double> currentPlayerStrategy;
-		int currentPlayerAction;
-		int currentPlayer = 0; // 0 is p1, 1 is p2
-		int history = 0;
-
-		while (!(history == 11 || history > 12)) {
-			int key = getKey(cards[currentPlayer], history);
-			if (nodes[key].card == -1) {
-				nodes[key] = Node(cards[currentPlayer], history, key, currentPlayer);
-			}
-			currentNode = &nodes[key];
-
-			currentPlayerStrategy = getStrategy(currentNode->regretSum);
-			currentPlayerAction = getAction(currentPlayerStrategy);
-			history = history * 10 + currentPlayerAction;
-
-			//++currentNode->strategySum[currentPlayerAction - 1];
 
 			currentPlayer = !currentPlayer;
 		}
@@ -236,7 +222,7 @@ class KuhnPoker {
 			while (temp / 10 > 0) {
 				temp /= 10;
 			}
-			cfr(1, 0, cards[1], result);
+			cfr(1, temp, cards[1], result);
 		}
 	}
 };
@@ -255,10 +241,7 @@ bool comp(Node a, Node b) {
 
 int main() {
 	KuhnPoker kp;
-	for (int i = 0; i < 10000; ++i) {
-		kp.playTestGame();
-	}
-	kp.train(50000);
+	kp.train(100000);
 	int count = 0;
 	std::vector<Node> nodes;
 	for (auto &pair : kp.nodes) {
@@ -295,10 +278,10 @@ player 1 strategies:
 2 pb   ['0.00', '1.00']
 
 player 2 strategies:
-0 b    ['1.00', '0.00']
 0 p    ['0.66', '0.34']
-1 b    ['0.64', '0.36']
+0 b    ['1.00', '0.00']
 1 p    ['1.00', '0.00']
-2 b    ['0.00', '1.00']
+1 b    ['0.64', '0.36']
 2 p    ['0.00', '1.00']
+2 b    ['0.00', '1.00']
 */
