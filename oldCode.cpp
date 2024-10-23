@@ -50,7 +50,6 @@ class KuhnPoker {
 	std::vector<int> actions; // 1: pass, 2: bet
 	std::mt19937 gen;
 	std::unordered_map<int, Node> nodes;
-	std::unordered_map<int, int> rewards;
 	int actionCount;
 
 	KuhnPoker() {
@@ -74,8 +73,6 @@ class KuhnPoker {
 		nodes[getKey(0, 2)] = Node(0, 2, getKey(0, 2), 1);
 		nodes[getKey(1, 2)] = Node(1, 2, getKey(1, 2), 1);
 		nodes[getKey(2, 2)] = Node(2, 2, getKey(2, 2), 1);
-
-		rewards = {{11, 1}, {21, 1}, {22, 2}, {121, 1}, {122, 2}};
 	}
 
 	std::vector<double> getStrategy(std::vector<int> regretSum) {

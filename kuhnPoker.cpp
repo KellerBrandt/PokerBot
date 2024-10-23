@@ -33,24 +33,39 @@ pA:
 class GameState {
   public:
 	std::vector<double> strategySum;
-	std::vector<double> regretSum;
 	std::vector<double> strategy;
+	std::vector<double> cfrSum;
 	double reachProbability; // maybe include the chance actions that distribute the cards
 	int history;
+
+	GameState(double rp, int history) : reachProbability(rp), history(history) {
+		strategySum = {0, 0};
+		strategy = {1.0 / 2.0, 1.0 / 2.0};
+		cfrSum = {0, 0};
+	}
+
+	void updateStrategy() {
+	}
 };
 
 class KuhnPoker {
   public:
 	std::vector<int> actions;
 	std::vector<int> cards;
+	std::mt19937 gen;
 	int playerCount;
 	int actionCount;
 
 	KuhnPoker() {
 		actions = {1, 2};  // 1: check, 2: bet
 		cards = {0, 1, 2}; // 0: jack, 1: queen, 2: king
-		playerCount = 2;   // 0: pA, 1: pB
+		gen = std::mt19937(std::random_device()());
+		playerCount = 2; // 0: pA, 1: pB
 		actionCount = 2;
+	}
+
+	void shuffleCards() {
+		std::shuffle(cards.begin(), cards.end(), gen);
 	}
 
 	bool isTerminalHistory(int history) {
@@ -85,6 +100,17 @@ class KuhnPoker {
 			return 2;
 		}
 		return -2;
+	}
+
+	// return the utility of a given node, maybe
+	double cfr() {
+	}
+
+	void train(int iterations) {
+		for (int i = 0; i < iterations; ++i) {
+			shuffleCards();
+			cfr();
+		}
 	}
 };
 
