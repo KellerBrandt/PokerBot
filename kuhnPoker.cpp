@@ -36,7 +36,7 @@ class GameState {
 	std::vector<double> strategy;
 	std::vector<double> cfrSum;
 	double reachProbability; // maybe include the chance actions that distribute the cards
-	int history;
+	int history;			 // 1: check, 2: bet, 3: chance
 
 	GameState(double rp, int history) : reachProbability(rp), history(history) {
 		strategySum = {0, 0};
@@ -75,10 +75,17 @@ class KuhnPoker {
 		return false;
 	}
 
+	bool isChance(int history) {
+		if (history == 0 || history == 3) {
+			return true;
+		}
+		return false;
+	}
+
 	// P function
 	int getPlayer(int history) {
-		if (history == 0) {
-			return 0;
+		if (history == 0 || history == 3) {
+			return -1; // no player
 		}
 		return std::to_string(history).length() % 2; // if the history length is even, it is pA's turn, if it is odd, it is pB's turn
 	}
@@ -103,13 +110,19 @@ class KuhnPoker {
 	}
 
 	// return the utility of a given node, maybe
-	double cfr() {
+	double cfr(int history, int pAprob, int pBprob) {
+		if (isChance(history)) {
+			// call 3 cfr, one for each card
+		}
+		if (isTerminalHistory(history)) {
+			return getUtility(history);
+		}
 	}
 
 	void train(int iterations) {
 		for (int i = 0; i < iterations; ++i) {
 			shuffleCards();
-			cfr();
+			cfr(0, 1, 1);
 		}
 	}
 };
