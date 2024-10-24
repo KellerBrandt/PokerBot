@@ -191,7 +191,7 @@ bool comp(Node a, Node b) {
 	return playerA < playerB;
 }
 
-int main() {
+/* int main() {
 	for (int i = 0; i < 1; ++i) {
 		KuhnPoker kp;
 		kp.train(100000);
@@ -219,7 +219,7 @@ int main() {
 		std::cout << "Time: " << (double)clock() / CLOCKS_PER_SEC << "\n";
 	}
 	return 0;
-}
+} */
 
 /*
 Expected results:
