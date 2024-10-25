@@ -92,12 +92,12 @@ class GameState {
 		} else {
 			returnString += std::to_string(history) + " ";
 		}
-		/* if (sum == 0) {
+		if (sum == 0) {
 			returnString += std::to_string((double)1 / 2) + " " + std::to_string((double)1 / 2);
 		} else {
 			returnString += std::to_string((double)strategySum[0] / sum) + " " + std::to_string((double)strategySum[1] / sum);
-		} */
-		returnString += std::to_string((double)strategySum[0]) + " " + std::to_string((double)strategySum[1]);
+		}
+		// returnString += std::to_string((double)strategySum[0]) + " " + std::to_string((double)strategySum[1]);
 
 		return returnString;
 	}
@@ -111,7 +111,6 @@ class KuhnPoker {
 	std::mt19937 gen;
 	int playerCount;
 	int actionCount;
-	bool debug = true;
 
 	KuhnPoker() {
 		actions = {1, 2};  // 1: check, 2: bet
@@ -190,13 +189,7 @@ class KuhnPoker {
 		}
 
 		int currentPlayer = getPlayer(history);
-		int currentCard;
-
-		if (currentPlayer == 0) {
-			currentCard = pAcard;
-		} else {
-			currentCard = pBcard;
-		}
+		int currentCard = (!currentPlayer) * pAcard + currentPlayer * pBcard;
 
 		GameState &currentGameState = gameStates[getKey(history, currentCard)]; // should work, just marking incase there is an error
 		std::vector<double> strategy = currentGameState.strategy;
@@ -205,42 +198,26 @@ class KuhnPoker {
 		double checkCFUtil;
 		double betCFUtil;
 
-		std::vector<double> cfrsum = currentGameState.cfrSum;
+		double currentProb = currentPlayer * pAprob + (!currentPlayer) * pBprob;
 
-		if (currentPlayer == 0) {
+		if (!currentPlayer) {
 			checkCFUtil = -1 * cfr(history * 10 + 1, pAprob * strategy[0], pBprob, chance, pAcard, pBcard);
 			betCFUtil = -1 * cfr(history * 10 + 2, pAprob * strategy[1], pBprob, chance, pAcard, pBcard);
-
-			currentCFUtil = chance * pBprob * (checkCFUtil * strategy[0] + betCFUtil * strategy[1]);
-
-			currentGameState.cfrSum[0] += chance * pBprob * (checkCFUtil - currentCFUtil);
-			currentGameState.cfrSum[1] += chance * pBprob * (betCFUtil - currentCFUtil);
 		} else {
 			checkCFUtil = -1 * cfr(history * 10 + 1, pAprob, pBprob * strategy[0], chance, pAcard, pBcard);
 			betCFUtil = -1 * cfr(history * 10 + 2, pAprob, pBprob * strategy[1], chance, pAcard, pBcard);
-
-			currentCFUtil = chance * pAprob * (checkCFUtil * strategy[0] + betCFUtil * strategy[1]);
-
-			currentGameState.cfrSum[0] += chance * pAprob * (checkCFUtil - currentCFUtil);
-			currentGameState.cfrSum[1] += chance * pAprob * (betCFUtil - currentCFUtil);
 		}
 
-		if (debug) {
-			std::cout << "strategy: " << strategy[0] << " " << strategy[1] << "\n";
-			std::cout << "cfrsum:   " << cfrsum[0] << " " << cfrsum[1] << "\n";
-			std::cout << "history:  " << history << "\n";
-			std::cout << "card:     " << currentCard << "\n";
-			std::cout << "utility:  " << currentCFUtil << "\n";
-			std::cout << "cUtil:    " << checkCFUtil << "\n";
-			std::cout << "bUtil:    " << betCFUtil << "\n";
-			std::cout << "\n";
-		}
+		currentCFUtil = (checkCFUtil * strategy[0] + betCFUtil * strategy[1]);
+
+		currentGameState.cfrSum[0] += chance * currentProb * (checkCFUtil - currentCFUtil);
+		currentGameState.cfrSum[1] += chance * currentProb * (betCFUtil - currentCFUtil);
 
 		return currentCFUtil;
 	}
 
 	void train(int iterations) {
-		int output = 0;
+		double output = 0;
 		double gameUtility = 0;
 		for (int x = 0; x < iterations; ++x) {
 			// shuffleCards();
@@ -253,16 +230,14 @@ class KuhnPoker {
 			}
 			gameUtility /= 6.0;
 			output += gameUtility;
+			gameUtility = 0;
 
 			// cfr(33, 1, 1, 1.0 / 6.0, 0, 1);
 			for (auto &pair : gameStates) {
 				pair.second.updateStrategy();
 			}
-			if (debug) {
-				std::cout << "end of iteration: " << x + 1 << "...................................................\n\n";
-			}
 		}
-		std::cout << output << "\n";
+		std::cout << "output: " << output / iterations << "\n";
 	}
 };
 
@@ -281,7 +256,7 @@ bool comp(GameState a, GameState b) {
 // might need fixing
 int main() {
 	KuhnPoker kp;
-	kp.train(5);
+	kp.train(1000000);
 	int count = 0;
 	std::vector<GameState> nodes;
 	for (auto &pair : kp.gameStates) {
