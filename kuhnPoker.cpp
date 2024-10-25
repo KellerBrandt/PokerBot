@@ -47,28 +47,33 @@ class GameState {
 		reachProbabilitySum = 0;
 	}
 
-	GameState() {}
+	GameState() {
+	}
 
 	void updateStrategy() {
-		int actionCount = 2;
-
-		for (double i : strategy) {
+		reachProbabilitySum += reachProbability;
+		reachProbability = 0;
+		for (int i = 0; i < 2; ++i) {
 			strategySum[i] += strategy[i];
 		}
 
-		std::vector<double> newSum;
-		double normalizingSum = 0;
-		for (double i : cfrSum)
-			newSum.push_back(i * (i > 0));
-		for (double i : newSum)
-			normalizingSum += i;
-		if (normalizingSum > 0) {
-			for (int i = 0; i < actionCount; ++i)
-				newSum[i] /= normalizingSum;
-		} else {
-			newSum = {1.0 / actionCount, 1.0 / actionCount};
+		double total = 0;
+		for (double i : cfrSum) {
+			if (i > 0) {
+				total += i;
+			}
 		}
-		strategy = newSum;
+		if (total == 0) {
+			strategy = {1.0 / 2.0, 1.0 / 2.0};
+		} else {
+			for (int i = 0; i < 2; ++i) {
+				if (cfrSum[i] > 0) {
+					strategy[i] = cfrSum[i] / total;
+				} else {
+					strategy[i] = 0;
+				}
+			}
+		}
 	}
 
 	int getPlayer() {
@@ -83,15 +88,17 @@ class GameState {
 		int sum = strategySum[0] + strategySum[1];
 		returnString += std::to_string(card) + " ";
 		if (history == 33) {
-			returnString += std::to_string(history) + "  ";
+			returnString += std::to_string(history) + "   ";
 		} else {
 			returnString += std::to_string(history) + " ";
 		}
-		if (sum == 0) {
+		/* if (sum == 0) {
 			returnString += std::to_string((double)1 / 2) + " " + std::to_string((double)1 / 2);
 		} else {
 			returnString += std::to_string((double)strategySum[0] / sum) + " " + std::to_string((double)strategySum[1] / sum);
-		}
+		} */
+		returnString += std::to_string((double)strategySum[0]) + " " + std::to_string((double)strategySum[1]);
+
 		return returnString;
 	}
 };
@@ -104,6 +111,7 @@ class KuhnPoker {
 	std::mt19937 gen;
 	int playerCount;
 	int actionCount;
+	bool debug = true;
 
 	KuhnPoker() {
 		actions = {1, 2};  // 1: check, 2: bet
@@ -160,7 +168,7 @@ class KuhnPoker {
 			opponentCard = pAcard;
 		}
 		if (history % 10 == 1) {
-			if (history == 11) {
+			if (history == 3311) {
 				if (currentPlayerCard > opponentCard) {
 					return 1;
 				} else {
@@ -175,62 +183,86 @@ class KuhnPoker {
 		return -2;
 	}
 
-	double getGameUtility() {
-		double totalUtility = 0;
-		for (int i = 0; i < cards.size(); ++i) {
-			for (int j = 0; j < cards.size(); ++j) {
-				if (i != j) {
-					totalUtility += cfr(33, 1, 1, 1.0 / 6.0, i, j);
-				}
-			}
-		}
-		return totalUtility / 6.0;
-	}
-
 	// return the utility of a given node, maybe
 	double cfr(int history, double pAprob, double pBprob, double chance, int pAcard, int pBcard) {
-		if (isChance(history)) {
-			return getGameUtility();
-		}
 		if (isTerminalHistory(history)) {
 			return getUtility(history, pAcard, pBcard);
 		}
 
 		int currentPlayer = getPlayer(history);
-		GameState currentGameState = gameStates[getKey(history, currentPlayer * pBcard + !currentPlayer * pAcard)]; // should work, just marking incase there is an error
-		double checkUtility;
-		double betUtility;
+		int currentCard;
+
+		if (currentPlayer == 0) {
+			currentCard = pAcard;
+		} else {
+			currentCard = pBcard;
+		}
+
+		GameState &currentGameState = gameStates[getKey(history, currentCard)]; // should work, just marking incase there is an error
 		std::vector<double> strategy = currentGameState.strategy;
 
-		if (!currentPlayer) { // if currentPlayer == 0 == pA
-			currentGameState.reachProbabilitySum += pAprob;
-			checkUtility = cfr(history * 10 + 1, pAprob * strategy[0], pBprob, chance, pAcard, pBcard);
-			betUtility = cfr(history * 10 + 2, pAprob * strategy[1], pBprob, chance, pAcard, pBcard);
+		double currentCFUtil;
+		double checkCFUtil;
+		double betCFUtil;
+
+		std::vector<double> cfrsum = currentGameState.cfrSum;
+
+		if (currentPlayer == 0) {
+			checkCFUtil = -1 * cfr(history * 10 + 1, pAprob * strategy[0], pBprob, chance, pAcard, pBcard);
+			betCFUtil = -1 * cfr(history * 10 + 2, pAprob * strategy[1], pBprob, chance, pAcard, pBcard);
+
+			currentCFUtil = chance * pBprob * (checkCFUtil * strategy[0] + betCFUtil * strategy[1]);
+
+			currentGameState.cfrSum[0] += chance * pBprob * (checkCFUtil - currentCFUtil);
+			currentGameState.cfrSum[1] += chance * pBprob * (betCFUtil - currentCFUtil);
 		} else {
-			currentGameState.reachProbabilitySum += pBprob;
-			checkUtility = cfr(history * 10 + 1, pAprob, pBprob * strategy[0], chance, pAcard, pBcard);
-			betUtility = cfr(history * 10 + 2, pAprob, pBprob * strategy[1], chance, pAcard, pBcard);
+			checkCFUtil = -1 * cfr(history * 10 + 1, pAprob, pBprob * strategy[0], chance, pAcard, pBcard);
+			betCFUtil = -1 * cfr(history * 10 + 2, pAprob, pBprob * strategy[1], chance, pAcard, pBcard);
+
+			currentCFUtil = chance * pAprob * (checkCFUtil * strategy[0] + betCFUtil * strategy[1]);
+
+			currentGameState.cfrSum[0] += chance * pAprob * (checkCFUtil - currentCFUtil);
+			currentGameState.cfrSum[1] += chance * pAprob * (betCFUtil - currentCFUtil);
 		}
 
-		if (!currentPlayer) {																			 // if currentPlayer == 0 == pA
-			currentGameState.cfrSum[0] += pAprob * chance * (checkUtility * strategy[0] - checkUtility); // check
-			currentGameState.cfrSum[1] += pAprob * chance * (betUtility * strategy[1] - betUtility);	 // bet
-		} else {
-			currentGameState.cfrSum[0] += pBprob * chance * (checkUtility * strategy[0] - checkUtility); // check
-			currentGameState.cfrSum[1] += pBprob * chance * (betUtility * strategy[1] - betUtility);	 // bet
+		if (debug) {
+			std::cout << "strategy: " << strategy[0] << " " << strategy[1] << "\n";
+			std::cout << "cfrsum:   " << cfrsum[0] << " " << cfrsum[1] << "\n";
+			std::cout << "history:  " << history << "\n";
+			std::cout << "card:     " << currentCard << "\n";
+			std::cout << "utility:  " << currentCFUtil << "\n";
+			std::cout << "cUtil:    " << checkCFUtil << "\n";
+			std::cout << "bUtil:    " << betCFUtil << "\n";
+			std::cout << "\n";
 		}
 
-		// update strategies after updating cfrsum
-		currentGameState.updateStrategy();
-
-		return (checkUtility * strategy[0] + betUtility * strategy[1]);
+		return currentCFUtil;
 	}
 
 	void train(int iterations) {
-		for (int i = 0; i < iterations; ++i) {
-			shuffleCards();
-			cfr(0, 1, 1, 1, -1, -1);
+		int output = 0;
+		double gameUtility = 0;
+		for (int x = 0; x < iterations; ++x) {
+			// shuffleCards();
+			for (int i = 0; i < cards.size(); ++i) {
+				for (int j = 0; j < cards.size(); ++j) {
+					if (i != j) {
+						gameUtility += cfr(33, 1, 1, 1.0 / 6.0, i, j);
+					}
+				}
+			}
+			gameUtility /= 6.0;
+			output += gameUtility;
+
+			// cfr(33, 1, 1, 1.0 / 6.0, 0, 1);
+			for (auto &pair : gameStates) {
+				pair.second.updateStrategy();
+			}
+			if (debug) {
+				std::cout << "end of iteration: " << x + 1 << "...................................................\n\n";
+			}
 		}
+		std::cout << output << "\n";
 	}
 };
 
@@ -249,7 +281,7 @@ bool comp(GameState a, GameState b) {
 // might need fixing
 int main() {
 	KuhnPoker kp;
-	kp.train(100000);
+	kp.train(5);
 	int count = 0;
 	std::vector<GameState> nodes;
 	for (auto &pair : kp.gameStates) {
@@ -275,3 +307,22 @@ int main() {
 
 	return 0;
 }
+
+/*
+Expected results:
+player 1 strategies:
+0      ['0.79', '0.21']
+0 pb   ['1.00', '0.00']
+1      ['0.98', '0.02']
+1 pb   ['0.45', '0.55']
+2      ['0.36', '0.64']
+2 pb   ['0.00', '1.00']
+
+player 2 strategies:
+0 p    ['0.66', '0.34']
+0 b    ['1.00', '0.00']
+1 p    ['1.00', '0.00']
+1 b    ['0.64', '0.36']
+2 p    ['0.00', '1.00']
+2 b    ['0.00', '1.00']
+*/
