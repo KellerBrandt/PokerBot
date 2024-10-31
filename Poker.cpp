@@ -32,6 +32,6 @@ class Poker {
 	void train(int iterations) {}
 };
 
-int main() {
+/* int main() {
 	return 0;
-}
+} */

@@ -182,7 +182,7 @@ class KuhnPoker {
 		return -2;
 	}
 
-	// return the utility of a given node, maybe
+	// return the utility
 	double cfr(int history, double pAprob, double pBprob, double chance, int pAcard, int pBcard) {
 		if (isTerminalHistory(history)) {
 			return getUtility(history, pAcard, pBcard);
@@ -254,7 +254,7 @@ bool comp(GameState a, GameState b) {
 }
 
 // might need fixing
-int main() {
+/* int main() {
 	KuhnPoker kp;
 	kp.train(1000000);
 	int count = 0;
@@ -281,23 +281,28 @@ int main() {
 	std::cout << "Time: " << (double)clock() / CLOCKS_PER_SEC << "\n";
 
 	return 0;
-}
+} */
 
 /*
-Expected results:
-player 1 strategies:
-0      ['0.79', '0.21']
-0 pb   ['1.00', '0.00']
-1      ['0.98', '0.02']
-1 pb   ['0.45', '0.55']
-2      ['0.36', '0.64']
-2 pb   ['0.00', '1.00']
+My results:
+output: -0.0555697
+Player 1:
+0 33   0.791801 0.208199
+0 3312 1.000000 0.000000
+1 33   1.000000 0.000000
+1 3312 0.458397 0.541603
+2 33   0.374982 0.625018
+2 3312 0.000000 1.000000
 
-player 2 strategies:
-0 p    ['0.66', '0.34']
-0 b    ['1.00', '0.00']
-1 p    ['1.00', '0.00']
-1 b    ['0.64', '0.36']
-2 p    ['0.00', '1.00']
-2 b    ['0.00', '1.00']
+Player 2:
+0 331 0.666614 0.333386
+0 332 1.000000 0.000000
+1 331 1.000000 0.000000
+1 332 0.666636 0.333364
+2 331 0.000000 1.000000
+2 332 0.000000 1.000000
+
+Count: 12
+Time: 214.397
+Iterations: 50000000
 */
