@@ -5,144 +5,208 @@
 #include <unordered_map>
 #include <vector>
 
-class Node {
-  public:
-	std::vector<double> strategySum;
-	std::vector<double> strategy;
-	std::vector<double> regretSum;
-    bool isDefault;
-	// may be useless
-	std::vector<int> player;
-	int dealer;
-
-	Node(std::vector<int> player, int dealer) : player(player), dealer(dealer) {
-		strategySum = {0, 0};
-		strategy = {1.0 / 2.0, 1.0 / 2.0};
-		regretSum = {0, 0};
-        isDefault = false;
-	}
-
-    Node() {
-        isDefault = true;
-    }
-
-	// check later
-	void updateStrategy() {
-		for (int i = 0; i < 2; ++i) {
-			strategySum[i] += strategy[i];
-		}
-
-		double total = 0;
-		for (double i : regretSum) {
-			if (i > 0) {
-				total += i;
-			}
-		}
-		if (total == 0) {
-			strategy = {1.0 / 2.0, 1.0 / 2.0};
-		} else {
-			for (int i = 0; i < 2; ++i) {
-				if (regretSum[i] > 0) {
-					strategy[i] = regretSum[i] / total;
-				} else {
-					strategy[i] = 0;
-				}
-			}
-		}
-	}
-};
-
 /*
-Clubs, Diamonds, Hearts, Spades
-0-12   13-25     26-38   39-51
-%13 = rank
-/13 = suit
-*/
-int cardsLeft = 52;
-
-/*
-0: stad, 1: hit
+0: stand, 1: hit
 */
 int actions[2] = {0, 1};
-
-std::unordered_map<int, Node> nodes;
 
 int primes[13] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 41, 43};
 int suits[13] = {2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 11};
 
-// possible idea: abstract out the suits and make just an int[] with the counts of each rank
-double cfr() {
-	int deckSize = 52;
-	double total = 6497400; // 52 * 51 * 50 * 49
+// whether or not the dealer stands on soft 17
+bool standOnSeventeen = true;
 
-	for (int i = 0; i < deckSize; ++i) {
-		for (int j = 0; j < deckSize; ++i) {
-			if (j == i) {
-				continue;
-			}
-			for (int a = 0; a < deckSize; ++a) {
-				if (a == i || a == j) {
-					continue;
-				}
-				for (int b = 0; b < deckSize; ++b) {
-					if (b == i || b == j || b == a) {
-						continue;
-					}
-					// possible error source, reducing cards to their suits
-					cfr(std::vector<int>{i, j, a, b}, std::vector<int>{i % 13, j % 13}, std::vector<int>{a % 13, b % 13}, 1.0 / total, 1.0);
-				}
-			}
-		}
+// returns the score of a given hand
+int getScore(std::vector<int> hand) {
+	int score = 0;
+	int aceCount = 0;
+
+	for (int i : hand) {
+		score += suits[i];
+		aceCount += (i == 12);
 	}
+
+	for (int i = 0; i < aceCount; ++i) {
+		if (score <= 21) {
+			return score;
+		}
+		score -= 10;
+	}
+
+	return score;
 }
 
-/*
-the deck of cards, the players cards, the dealers cards
-*/
-double cfr(std::vector<int> usedCards, std::vector<int> player, std::vector<int> dealer, double chance, double playerPercent) {
-    if (isTerminal(player)) {
-        return getReward(player, dealer);
-    }
-    int key = getKey(player, dealer[0]);
-    Node &node = nodes[key]; //dealer 0 is the revealed card
-    if (node.isDefault) {
-        nodes[key] = Node(player, dealer[0]);
-    }
+// tie is currently counted as a loss
+bool playerWins(std::vector<int> player, std::vector<int> dealer) {
+	int playerScore = getScore(player);
+	int dealerScore = getScore(dealer);
 
-    
+	if (playerScore > 21) {
+		return false;
+	}
+
+	if (dealerScore > 21) {
+		return true;
+	}
+
+	return playerScore > dealerScore;
 }
 
 // possible error source
-int getKey(std::vector<int> cards, int dealer) {
-	int key = 1;
-	key *= primes[dealer % 13];
-	for (int i : cards) {
-		key *= primes[i % 13];
+bool dealerStand(std::vector<int> dealer) {
+	int score = getScore(dealer);
+	if (standOnSeventeen) {
+		if (score >= 17) {
+			return true;
+		}
+		return false;
+	} else { // not implimented yet because not in use
 	}
-	return key;
 }
 
-bool isTerminal(std::vector<int> player) {
-    int sum = 0;
-    int aceCount = 0;
-    for (int i : player) {
-        sum += suits[i];
-        aceCount += (i == 12);
-    }
-}
-
-double getReward(std::vector<int> player, std::vector<int> dealer) {
-
-}
-
-double train(int iterations) {
-	double value = 0;
-	for (double i = 0; i < iterations; ++i) {
-		value += cfr();
+bool isBlackjack(std::vector<int> hand) {
+	if (hand.size() > 2) {
+		return false;
 	}
-	return value / iterations;
+	if (hand[0] + hand[1] == 21) {
+		return true;
+	}
+	return false;
+}
+
+std::vector<double> standCounts(int deck[], std::vector<int> player, std::vector<int> dealer) {
+	if (dealerStand(dealer)) {
+		double playerWin = playerWins(player, dealer);
+		return std::vector<double>{playerWin, 1};
+	}
+
+	std::vector<double> counts = {0.0, 0.0};
+
+	// go through every possible card the dealer can get
+	for (int i = 0; i < 13; ++i) {
+		if (deck[i] > 0) {
+			--deck[i];
+			dealer.push_back(i);
+			std::vector<double> temp = standCounts(deck, player, dealer);
+			dealer.pop_back();
+			++deck[i];
+			// mult by the count of the card left to account for the number of times you could draw that card
+			counts[0] += deck[i] * temp[0];
+			counts[1] += deck[i] * temp[1];
+		}
+	}
+
+	return counts;
+}
+
+// returns the win count [0] and total count [1], doesn't worry about blackjacks because they are accounted for in getWinRate
+std::vector<double> getCounts(int deck[], std::vector<int> player, std::vector<int> dealer) {
+	if (getScore(player) >= 21) {
+		return standCounts(deck, player, dealer);
+	}
+
+	std::vector<double> counts = {0.0, 0.0};
+
+	// if player stands
+	std::vector<double> totals = standCounts(deck, player, dealer);
+	counts[0] += totals[0];
+	counts[1] = totals[1];
+
+	// if player hits
+	for (int i = 0; i < 13; ++i) {
+		if (deck[i] > 0) {
+			--deck[i];
+			player.push_back(i);
+			std::vector<double> temp = getCounts(deck, player, dealer);
+			player.pop_back();
+			++deck[i];
+			// mult by the count of the card left to account for the number of times you could draw that card
+			counts[0] += deck[i] * temp[0];
+			counts[1] += deck[i] * temp[1];
+		}
+	}
+
+	std::cout << "here" << std::endl;
+
+	return counts;
+}
+
+// deck[] contains the count of each card left in the deck
+double getWinRate(int deck[]) {
+	std::vector<double> counts;
+	for (int i = 0; i < 13; ++i) {
+		if (deck[i] <= 0) {
+			continue;
+		}
+		--deck[i];
+		for (int j = 0; j < 13; ++j) {
+			if (deck[j] <= 0) {
+				continue;
+			}
+			--deck[j];
+			for (int a = 0; a < 13; ++a) {
+				if (deck[a] <= 0) {
+					continue;
+				}
+				--deck[a];
+				for (int b = 0; b < 13; ++b) {
+					if (deck[b] <= 0) {
+						continue;
+					}
+					--deck[b];
+
+					std::vector<double> temp;
+
+					bool playerBlackjack = isBlackjack(std::vector<int>{i, j});
+					bool dealerBlackjack = isBlackjack(std::vector<int>{a, b});
+
+					if (playerBlackjack) {
+						if (dealerBlackjack) {
+							temp = std::vector<double>{0.0, 1.0};
+						}
+						temp = std::vector<double>{1.0, 1.0};
+					} else if (dealerBlackjack) {
+						temp = std::vector<double>{0.0, 1.0};
+					} else {
+						temp = getCounts(deck, std::vector<int>{i, j}, std::vector<int>{a, b});
+					}
+
+					counts[0] += temp[0];
+					counts[1] += temp[1];
+					++deck[b];
+					std::cout << "b: " << b << std::endl;
+				}
+				++deck[a];
+				std::cout << "a: " << a << std::endl;
+			}
+			++deck[j];
+			std::cout << "j: " << j << std::endl;
+		}
+		++deck[i];
+		std::cout << "i: " << i << std::endl;
+	}
+	return counts[0] / counts[1];
+}
+
+// start by using lowest b for kelly criterion, b = 1; doesnt account for blackjacks 3:2 return
+double getBetAmount(int deck[], double bankRoll) {
+	double winRate = getWinRate(deck);
+	double odds = 1.0 / 1.0;
+	double percentBet = (winRate - (1 - winRate) / odds);
+	return bankRoll * percentBet * (percentBet > 0);
 }
 
 int main() {
+	double amount;
+	int deck[13];
+
+	for (int i = 0; i < 13; ++i) {
+		deck[i] = 8;
+	}
+
+	amount = getBetAmount(deck, 100);
+
+	std::cout << amount << std::endl;
+
 	return 0;
 }
