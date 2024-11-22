@@ -1,108 +1,80 @@
 #include <algorithm>
 #include <iostream>
 #include <random>
-#include <set>
 #include <stdio.h>
 #include <unordered_map>
 #include <vector>
 
 /*
-deck:
-0-51
-ranks = {0: 2, 1: 3, 2: 4, 3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: T, 9: J, 10: Q, 11: K, 12: A}
-suits = {0: C, 1: D, 2: H, 3: S}
-num%13 = rank
-num/13 = suit
-
-dealer stands on 17+
-
-blackjack beats anything other than a blackjack
-
-ways a game ends:
-player stands
-player hits and then busts
-player doubles down then busts
-player hits to 21
-player doubles to 21
-player has blackjack at start
+Clubs, Diamonds, Hearts, Spades
+0-12   13-25     26-38   39-51
+%13 = rank
+/13 = suit
 */
+int cardsLeft = 52;
 
-class Node {
-	std::vector<double> strategySum;
-	std::vector<double> strategy;
-	std::vector<double> cfrSum;
-	int history; // 1: check, 2: bet, 3: chance
-	int card;
-};
+/*
+0: stad, 1: hit
+*/
+int actions[2] = {0, 1};
 
-std::unordered_map<int, Node> nodes;
+std::unordered_map<int, std::vector<int>> nodes;
 
-// 1: Hit, 2: Stand, 3: Double down, 4: Split
-int actions[] = {1, 2, 3, 4};
-int cardValues[] = {};
-
-Node getNode() {
-	return Node();
-}
-
-int getScore() {
-	return 0;
-}
-
-bool isTerminal(int history, int player) {
-	if (player >= 21) {
-		return true;
-	}
-	return history % 10 == 2;
-}
-
-double cfr(int history, int player, int dealer, int hidden, int deck[], double probability) {
-	if (isTerminal(history, player)) {
-		return getScore();
-	}
-	return 0;
-}
-
+//possible idea: abstract out the suits and make just an int[] with the counts of each rank
 double cfr() {
-	std::set<int> set;
-	int output = 0;
-	int player = 0;
-	int dealer = 0;
-	int deck[13]; // only one deck used, later try with 8 decks
+	int deckSize = 52;
+    double total = 6497400; // 52 * 51 * 50 * 49
 
-	for (int i = 0; i < sizeof(deck); ++i) {
-		deck[i] = 4;
-	}
+    for (int i = 0; i < deckSize; ++i) {
+        for (int j = 0; j < deckSize; ++i) {
+            if (j == i) {
+                continue;
+            }
+            for (int a = 0; a < deckSize; ++a) {
+                if (a == i || a == j) {
+                    continue;
+                }
+                for (int b = 0; b < deckSize; ++b) {
+                    if (b == i || b == j || b == a) {
+                        continue;
+                    }
+                    cfr(std::vector<int>{i, j, a, b}, std::vector<int>{i, j}, std::vector<int>{a, b}, 1.0 / total, 1.0);
+                }
+            }
+        }
+    }
 }
 
-void getFrequencies() {
+/*
+the deck of cards, the players cards, the dealers cards
+*/
+double cfr(std::vector<int> usedCards, std::vector<int> player, std::vector<int> dealer, double chance, double playerPercent) {
 
+}
+
+void makeDeck(int (&deck)[]) {
 	for (int i = 0; i < 52; ++i) {
-		for (int j = 0; j < 51; ++j) {
-			for (int k = 0; k < 50; ++k) {
-				for (int l = 0; l < 49; ++l) {
-                    
-				}
-			}
-		}
+		deck[i] = i;
 	}
+	std::random_shuffle(&deck[0], &deck[51]);
+}
+
+std::vector<int> makeDeck(int deckSize) {
+    std::vector<int> deck;
+    for (int i = 0; i < deckSize; ++i) {
+        deck.push_back(i);
+    }
+    return deck;
 }
 
 double train(int iterations) {
-	double output = 0;
-	for (int i = 0; i < iterations; ++i) {
-		output += cfr();
+	double value = 0;
+	for (double i = 0; i < iterations; ++i) {
+		value += cfr();
 	}
-	return output / iterations;
+	return value / iterations;
 }
 
 int main() {
-	int iterations = 1000;
-	// train(iterations);
-	cfr();
-	int p[] = {1, 2, 3, 4};
-	for (int i : p) {
-		std::cout << i << std::endl;
-	}
 	return 0;
 }
